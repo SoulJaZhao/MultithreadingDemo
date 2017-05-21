@@ -14,6 +14,11 @@
 
 - (IBAction)clickNSThread;
 
+- (IBAction)clickGCD;
+
+- (IBAction)clickNSOperation;
+
+@property (nonatomic,strong) NSOperationQueue *operQueue;
 @end
 
 @implementation ViewController
@@ -72,6 +77,96 @@
     
     //3.通过performSelectorInBackground 方式创建
     [self performSelectorInBackground:@selector(runThread) withObject:nil];
+}
+
+- (IBAction)clickGCD {
+      //并行
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        //执行耗时任务
+        [NSThread sleepForTimeInterval:3.0];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            //回到主线程刷新UI
+            NSLog(@"刷新UI");
+        });
+    });
+    
+    //串行
+    dispatch_queue_t myQueue = dispatch_queue_create("myQueue", DISPATCH_QUEUE_SERIAL);
+    
+    dispatch_async(myQueue, ^{
+        //执行耗时任务
+        NSLog(@"start task 1");
+        [NSThread sleepForTimeInterval:2.0];
+        NSLog(@"end task 1");
+    });
+    
+    dispatch_async(myQueue, ^{
+        //执行耗时任务
+        NSLog(@"start task 2");
+        [NSThread sleepForTimeInterval:2.0];
+        NSLog(@"end task 2");
+    });
+    
+    dispatch_async(myQueue, ^{
+        //执行耗时任务
+        NSLog(@"start task 3");
+        [NSThread sleepForTimeInterval:2.0];
+        NSLog(@"end task 3");
+    });
+    
+    //线程组
+    dispatch_queue_t queue = dispatch_queue_create("myQueue", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_group_t group = dispatch_group_create();
+    
+    dispatch_group_async(group, queue, ^{
+        NSLog(@"start task 1");
+        [NSThread sleepForTimeInterval:2.0];
+        NSLog(@"end task 1");
+    });
+    
+    dispatch_group_async(group, queue, ^{
+        NSLog(@"start task 2");
+        [NSThread sleepForTimeInterval:2.0];
+        NSLog(@"end task 2");
+    });
+    
+    dispatch_group_async(group, queue, ^{
+        NSLog(@"start task 3");
+        [NSThread sleepForTimeInterval:2.0];
+        NSLog(@"end task 3");
+    });
+    
+    dispatch_group_notify(group, queue, ^{
+        NSLog(@"All tasks over");
+    });
+}
+
+- (IBAction)clickNSOperation {
+    NSInvocationOperation *invocationOper = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(invocationAction) object:nil];
+    [invocationOper start];
+    
+    NSBlockOperation *blockOper = [NSBlockOperation blockOperationWithBlock:^{
+        [self invocationAction];
+    }];
+    [blockOper start];
+    
+    if (self.operQueue) {
+        self.operQueue = [[NSOperationQueue alloc] init];
+        self.operQueue.maxConcurrentOperationCount = 10;
+    }
+    
+    [self.operQueue addOperation:blockOper];
+    [self.operQueue addOperation:invocationOper];
+    
+    [blockOper addDependency:invocationOper];
+    NSLog(@"end");
+}
+
+- (void)invocationAction {
+    for (int i = 0;i<3;i++) {
+        NSLog(@"invocation %d",i);
+        [NSThread sleepForTimeInterval:1.0];
+    }
 }
 
 - (void)runThread {
