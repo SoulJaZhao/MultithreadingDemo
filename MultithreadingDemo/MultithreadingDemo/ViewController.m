@@ -62,20 +62,25 @@
 
 - (IBAction)clickNSThread {
     //1.通过alloc init方式创建并执行线程
-//    NSThread *thread1 = [[NSThread alloc] initWithTarget:self selector:@selector(runThread) object:nil];
-//    [thread1 start];
+    NSThread *thread1 = [[NSThread alloc] initWithTarget:self selector:@selector(runThread) object:nil];
+    [thread1 setName:@"thread1"];
+    [thread1 setThreadPriority:0.5];
+    [thread1 start];
     
     //2.通过detachMewThreadSelector
-//    [NSThread detachNewThreadSelector:@selector(runThread) toTarget:self withObject:nil];
+    [NSThread detachNewThreadSelector:@selector(runThread) toTarget:self withObject:nil];
     
     //3.通过performSelectorInBackground 方式创建
     [self performSelectorInBackground:@selector(runThread) withObject:nil];
 }
 
 - (void)runThread {
-    for (int i = 0; i<=10; i++) {
-        NSLog(@"%d",i);
-        sleep(1);
+    //锁机制
+    @synchronized (self) {
+        for (int i = 0; i<=10; i++) {
+            NSLog(@"%d",i);
+            sleep(1);
+        }
     }
 }
 
